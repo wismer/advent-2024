@@ -6,7 +6,7 @@ use crate::days::{
     day1
 };
 
-use super::{day2, day3, day4, day5};
+use super::{day2, day3, day4, day5, day6};
 
 pub fn solver(fpath: &str, day: &str, part: &str) {
     match day {
@@ -15,6 +15,7 @@ pub fn solver(fpath: &str, day: &str, part: &str) {
         "3" => day3::solve(fpath, part),
         "4" => day4::solve(fpath, part),
         "5" => day5::solve(fpath, part),
+        "6" => day6::solve(fpath, part),
         _ => unimplemented!()
     }
 }
