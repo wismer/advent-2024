@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, thread::yield_now};
 
 use crate::days::solver::AdventSolver;
 
@@ -34,65 +34,56 @@ trait Day6 {
 }
 
 impl GuardMap {
-    fn get_next_coord(&mut self) -> Option<(usize, usize)> {
-        let max = self.map.len();
+    fn check_coord(&self, pos: (usize, usize)) -> Option<&PlotPoint> {
+        self.map.get(pos.0).and_then(|x| x.get(pos.1))
+    }
 
-        let (current_pos, direction) = &self.guard_location;
-        println!("DID I UPDATE: {:?}", self.guard_location);
-        match direction {
-            Direction::Down => {
-                if current_pos.0 == max - 1 {
-                    None
-                } else {
-                    Some((current_pos.0 + 1, current_pos.1))
+    fn get_next_coordinate(&self) -> Option<(usize, usize)> {
+        let max = (self.map.len() - 1) as isize;
+        let (current_position, current_direction) = &self.guard_location;
+        let coord = match current_direction {
+            Direction::Up => (-1, 0),
+            Direction::Down => (1, 0),
+            Direction::Left => (0, -1),
+            Direction::Right => (0, 1)
+        };
+        let x = current_position.0 as isize + coord.0;
+        let y = current_position.1 as isize + coord.1;
+
+        if x < 0 || x > max || y < 0 || y > max {
+            return None
+        }
+
+        Some((x as usize, y as usize))
+    }
+
+    fn should_rotate(&self, coordinate: (usize, usize)) -> bool {
+        match self.check_coord(coordinate) {
+            None => false,
+            Some(pp) => {
+                match pp {
+                    PlotPoint::Structure => {
+                        true
+                    },
+                    _ => false
                 }
-            },
-            Direction::Up => {
-                if current_pos.0.checked_sub(1).is_none() {
-                    None
-                } else {
-                    Some((current_pos.0 - 1, current_pos.1))
-                }
-            },
-            Direction::Right => {
-                if current_pos.1 == max - 1 {
-                    None
-                } else {
-                    Some((current_pos.0, current_pos.1 + 1))
-                }
-            },
-            Direction::Left => {
-                if current_pos.1 == 0 {
-                    None
-                } else {
-                    Some((current_pos.0, current_pos.1 - 1))
-                }
-            },
-            _ => None
+            }
         }
     }
 
     fn update_position(&mut self, pos: (usize, usize)) {
-        println!("update pos : {:?}", pos);
-        match self.map.get(pos.0).and_then(|row| row.get(pos.1)) {
-            Some(pp) => {
-                match pp {
-                    PlotPoint::Structure => {
-                        let new_direction = match self.guard_location.1 {
-                            Direction::Down => Direction::Left,
-                            Direction::Left => Direction::Up,
-                            Direction::Up => Direction::Right,
-                            Direction::Right => Direction::Down
-                        };
-                        self.guard_location.1 = new_direction;
-                    },
-                    _ => {
-                        self.guard_location = (Point(pos.0, pos.1), self.guard_location.1);
-                    }
-                }
-            },
-            None => {}
-        }
+        self.guard_location = (Point(pos.0, pos.1), self.guard_location.1);
+    }
+
+    fn rotate(&mut self) {
+        let new_direction = match self.guard_location.1 {
+            Direction::Down => Direction::Left,
+            Direction::Left => Direction::Up,
+            Direction::Up => Direction::Right,
+            Direction::Right => Direction::Down
+        };
+
+        self.guard_location = (Point(self.guard_location.0.0, self.guard_location.0.1), new_direction);
     }
 }
 
@@ -126,19 +117,25 @@ impl Day6 for AdventSolver {
     }
 
     fn part_one(&self) -> usize {
-        let mut result = 0;
         let mut visited_positions: HashSet<(usize, usize)> = HashSet::new();
         let mut map = self.parse();
 
         visited_positions.insert((map.guard_location.0.0, map.guard_location.0.1));
-        while let Some(n) = map.get_next_coord() {
-            println!("n: {:?}", n);
-            visited_positions.insert(n);
-            map.update_position(n);
-            println!("after: {:?}", map.guard_location);
+        // evaluate direction (up, down, etc)
+        // modify current position with direction context
+        // with modified position, check the map for validitity
+        // if it's a structure, update direction & rerun step 1 & 2
+
+        while let Some(n) = map.get_next_coordinate() {
+            if map.should_rotate(n) {
+                // rotate but don't move from {:, coordinate?}
+                map.rotate();
+            } else {
+                map.update_position(n);
+                visited_positions.insert(n);
+            }
         }
-        println!("map: {:?}", visited_positions.len());
-        result
+        visited_positions.len()
     }
 
     fn part_two(&self) -> usize {
