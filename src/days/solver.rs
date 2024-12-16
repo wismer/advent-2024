@@ -1,12 +1,8 @@
-use core::{unimplemented};
 use std::fs::File;
 use std::io::prelude::*;
 
-use crate::days::{
-    day1
-};
 
-use super::{day2, day3, day4, day5, day6};
+use super::{day1, day2, day3, day4, day5, day6, day7};
 
 pub fn solver(fpath: &str, day: &str, part: &str) {
     match day {
@@ -16,10 +12,15 @@ pub fn solver(fpath: &str, day: &str, part: &str) {
         "4" => day4::solve(fpath, part),
         "5" => day5::solve(fpath, part),
         "6" => day6::solve(fpath, part),
+        "7" => day7::solve(fpath, part),
         _ => unimplemented!()
     }
 }
 
+pub trait SP {
+    fn part_one(&self) -> usize;
+    fn part_two(&self) -> usize;
+}
 
 pub struct AdventSolver {
     pub input: String
