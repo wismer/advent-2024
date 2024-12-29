@@ -1,10 +1,7 @@
-use core::net;
-use std::{collections::HashMap, fmt};
+use std::{collections::{HashMap, HashSet}, fmt};
 use colored::{ColoredString, Colorize};
 use rand::Rng;
 use crate::days::solver::AdventSolver;
-
-
 
 #[derive(Debug)]
 enum FieldObject {
@@ -73,17 +70,31 @@ impl fmt::Display for AntennaeField {
 
 
 impl AntennaeField {
-    fn get_possible_antinode_locs(&self, first: (usize, usize), second: (usize, usize)) -> Option<[(usize, usize); 2]> {
-        None
+    fn get_possible_antinode_locs(&self, first: (usize, usize), second: (usize, usize)) -> Vec<(isize, isize)> {
+        let max = self.grid.len() as isize;
+        let min = 0;
+        let diff = self.get_distance_diff(first, &second);
+
+        let mut locs = vec![];
+        let mut loc = (first.0 as isize + diff.0, first.1 as isize + diff.1);
+
+        while loc.0 >= min && loc.0 < max && loc.1 >= min && loc.1 < max {
+            locs.push(loc);
+            loc = (loc.0 + diff.0, loc.1 + diff.1);
+        }
+
+        loc = (second.0 as isize + -diff.0, second.1 as isize + -diff.1);
+
+        while loc.0 >= min && loc.0 < max && loc.1 >= min && loc.1 < max {
+            locs.push(loc);
+            loc = (loc.0 + -diff.0, loc.1 + -diff.1);
+        }
+
+        locs
     }
 
     fn get_pair_distance(&self, first: (usize, usize), second: &(usize, usize)) -> [(isize, isize); 2] {
-        let diff = (
-            first.0 as isize - second.0 as isize,
-            first.1 as isize - second.1 as isize
-        );
-            
-
+        let diff = self.get_distance_diff(first, second);
 
         [
             (
@@ -97,9 +108,16 @@ impl AntennaeField {
         ]
     }
 
+    fn get_distance_diff(&self, first: (usize, usize), second: &(usize, usize)) -> (isize, isize) {
+        (
+            first.0 as isize - second.0 as isize,
+            first.1 as isize - second.1 as isize
+        )
+    }
+
     fn place_antinodes(&mut self) {
         for c in self.locs.keys() {
-            let mut freq_nodes = self.locs.get(c).unwrap();
+            let freq_nodes = self.locs.get(c).unwrap();
             let size = self.grid.len() as isize;
             let mut loc = freq_nodes[0];
             let mut idx = 1;
@@ -108,14 +126,43 @@ impl AntennaeField {
                 for node in freq_nodes[idx..].iter() {
                     let distance = self.get_pair_distance(loc, node);
                     for coord in distance {
+
                         if coord.0 >= 0 && coord.0 < size && coord.1 >= 0 && coord.1 < size {
                             let el = self.grid.get_mut(coord.0 as usize).unwrap().get_mut(coord.1 as usize).unwrap();
                             *el = match el {
-                                FieldObject::Antennae(c, false) => FieldObject::Antennae(*c, true),
+                                FieldObject::Antennae(c, _) => FieldObject::Antennae(*c, true),
                                 _ => FieldObject::Antinode
                             }
                         }
                     }
+                }
+
+                loc = freq_nodes[idx];
+                idx += 1;
+            }
+        }
+    }
+
+    fn place_multi_antinodes(&mut self) {
+        for c in self.locs.keys() {
+            let freq_nodes = self.locs.get(c).unwrap();
+            let size = self.grid.len() as isize;
+            let mut loc = freq_nodes[0];
+            let mut idx = 1;
+            let mut appeared = 0;
+            let mut distances: HashSet<(isize, isize)> = HashSet::new();
+            while idx < freq_nodes.len() {
+                for node in freq_nodes[idx..].iter() {
+                    let diff = self.get_distance_diff(loc, node);
+                    let distance = self.get_possible_antinode_locs(loc, *node);
+                    for coord in distance {
+                        let el = self.grid.get_mut(coord.0 as usize).unwrap().get_mut(coord.1 as usize).unwrap();
+                        *el = match el {
+                            FieldObject::Antennae(c, _) => FieldObject::Antennae(*c, true),
+                            _ => FieldObject::Antinode
+                        }
+                    }
+                    println!("{}", self);
                 }
 
                 loc = freq_nodes[idx];
@@ -180,13 +227,14 @@ impl Day8 for AdventSolver {
         let mut field = self.parse();
         field.place_antinodes();
         println!("{} : ", field);
-
-        println!("distance: {}", ConstructionCrew::measure_distance((43, 18), (44, 16)));
         field.count_antinodes()
     }
 
     fn part_two(&self) -> usize {
-        0
+        let mut field = self.parse();
+        field.place_multi_antinodes();
+        println!("{} : ", field);
+        field.count_antinodes()
     }
 }
 
