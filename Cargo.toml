@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 regex = "1.11.1"
+grid = "0.15.0"
+colored = "2.2.0"
+rand = "0.8.5"

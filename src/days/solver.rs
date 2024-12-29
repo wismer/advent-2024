@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::prelude::*;
 
 
-use super::{day1, day2, day3, day4, day5, day6, day7};
+use super::{day1, day2, day3, day4, day5, day6, day7, day8};
 
 pub fn solver(fpath: &str, day: &str, part: &str) {
     match day {
@@ -13,6 +13,7 @@ pub fn solver(fpath: &str, day: &str, part: &str) {
         "5" => day5::solve(fpath, part),
         "6" => day6::solve(fpath, part),
         "7" => day7::solve(fpath, part),
+        "8" => day8::solve(fpath, part),
         _ => unimplemented!()
     }
 }
